@@ -7,18 +7,14 @@ export const handler: Handler = async (event: SQSEvent, context) => {
   try {
     console.log("Event: ", JSON.stringify(event));
     
-
     for (const record of event.Records) {
       console.log("处理记录:", record.body);
       
-
       const message = JSON.parse(record.body);
-      
-
+    
       if (message.Message) {
         const s3Event = JSON.parse(message.Message);
         
-  
         if (s3Event.Records && s3Event.Records.length > 0) {
           const s3Record = s3Event.Records[0];
           const bucket = s3Record.s3.bucket.name;
@@ -26,10 +22,10 @@ export const handler: Handler = async (event: SQSEvent, context) => {
           
           console.log(`处理来自 S3 的文件: ${bucket}/${key}`);
           
-   
           const processedMessage = {
             source: "lambdaX",
             timestamp: new Date().toISOString(),
+            country: "Ireland",
             data: {
               bucket: bucket,
               key: key,
@@ -38,11 +34,19 @@ export const handler: Handler = async (event: SQSEvent, context) => {
             }
           };
           
-     
+          if ('email' in processedMessage) {
+            console.log("警告: 消息包含 email 属性，将被移除");
+            delete (processedMessage as any).email;
+          }
+          
+          if (!('country' in processedMessage)) {
+            console.log("警告: 消息缺少 country 属性，将被添加");
+            (processedMessage as any).country = "Ireland";
+          }
+          
           const queueBUrl = process.env.QUEUE_B_URL;
           
           if (queueBUrl) {
-          
             await sqsClient.send(new SendMessageCommand({
               QueueUrl: queueBUrl,
               MessageBody: JSON.stringify(processedMessage)

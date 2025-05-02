@@ -144,22 +144,16 @@ export class ExamStack extends cdk.Stack {
       new subs.SqsSubscription(queueA)
     )
 
-
-    lambdaXFn.addEventSource(new events.SqsEventSource(queueA, {
-      batchSize: 10,
-      maxBatchingWindow: cdk.Duration.seconds(5),
-    }));
-
-
+    
     queueB.grantSendMessages(lambdaXFn);
 
-
+ 
     lambdaYFn.addEventSource(new events.SqsEventSource(queueB, {
       batchSize: 10,
       maxBatchingWindow: cdk.Duration.seconds(5),
     }));
     
-
+   
     table.grantReadWriteData(lambdaYFn);
   }
 }
