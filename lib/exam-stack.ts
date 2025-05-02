@@ -111,6 +111,11 @@ export class ExamStack extends cdk.Stack {
       memorySize: 128,
       environment: {
         REGION: "eu-west-1",
+        QUEUE_B_URL: queueB.queueUrl,
+      },
+      bundling: {
+        externalModules: [],
+        nodeModules: ["@aws-sdk/client-sqs"],
       },
     });
 
@@ -122,9 +127,40 @@ export class ExamStack extends cdk.Stack {
       memorySize: 128,
       environment: {
         REGION: "eu-west-1",
+        TABLE_NAME: table.tableName,
+      },
+      bundling: {
+        externalModules: [],
+        nodeModules: ["@aws-sdk/client-dynamodb"],
       },
     });
     
+    bucket.addEventNotification(
+      s3.EventType.OBJECT_CREATED,
+      new s3n.SnsDestination(topic1)
+    )
+
+    topic1.addSubscription(
+      new subs.SqsSubscription(queueA)
+    )
+
+    
+    lambdaXFn.addEventSource(new events.SqsEventSource(queueA, {
+      batchSize: 10,
+      maxBatchingWindow: cdk.Duration.seconds(5),
+    }));
+
+    
+    queueB.grantSendMessages(lambdaXFn);
+
+   
+    lambdaYFn.addEventSource(new events.SqsEventSource(queueB, {
+      batchSize: 10,
+      maxBatchingWindow: cdk.Duration.seconds(5),
+    }));
+    
+   
+    table.grantReadWriteData(lambdaYFn);
   }
 }
   
